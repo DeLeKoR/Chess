@@ -1,25 +1,18 @@
-import pygame
 import sys
 from options import *
-from chess_bord import *
+from chess_items import *
 
-def run():
-    pygame.init()
-    screen = pygame.display.set_mode((window_size))
-    pygame.display.set_caption("Шахматы")
-    screen.fill(bg_color)
-    clock = pygame.time.Clock()
+pygame.init()
+screen = pygame.display.set_mode((WINDOW_SIZE))
+pygame.display.set_caption("Шахматы")
+screen.fill(BACKGROUND)
+clock = pygame.time.Clock()
 
-    checbord = Chessboard(screen)
+chessbord = Chessboard(screen)
 
-
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                sys.exit()
-
-        clock.tick(FPS)
-        pygame.display.flip()
-
-if __name__ == '__main__':
-    run()
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            sys.exit()
+    clock.tick(FPS)
+    pygame.display.flip()
