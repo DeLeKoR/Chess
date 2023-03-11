@@ -8,7 +8,7 @@ pygame.display.set_caption("Шахматы")
 screen.fill(BACKGROUND)
 clock = pygame.time.Clock()
 
-chessbord = Chessboard(screen)
+chessbord = Chessboard(screen, 8, 110)
 
 while True:
     for event in pygame.event.get():

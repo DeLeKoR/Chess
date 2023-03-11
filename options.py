@@ -1,4 +1,4 @@
-WINDOW_SIZE = (820, 820)
+WINDOW_SIZE = (950, 950)
 BACKGROUND = (180, 60, 20)
 FPS = 10
 BLACK = (30, 30, 30)
@@ -12,4 +12,13 @@ COLORS = ['img.png', 'img-1.png']
 colors_field = (WHITE, MID_GREY)
 LTRS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 FNT_SIZE = 18
-IMG_PATH = 'background/'
+IMG_PATH = 'image/'
+PIECES_PATH = 'image/pieces/'
+PIECES_TYPES = {
+    'k': ('King', 'b'), 'K': ('King', 'w'),
+    'q': ('Queen', 'b'), 'Q': ('Queen', 'w'),
+    'r': ('Rook', 'b'), 'R': ('Rook', 'w'),
+    'b': ('Bishop', 'b'), 'B': ('Bishop', 'w'),
+    'n': ('Knight', 'b'), 'N': ('Knight', 'w'),
+    'p': ('Pawn', 'b'), 'P': ('Pawn', 'w')
+}
