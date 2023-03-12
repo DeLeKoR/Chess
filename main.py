@@ -1,16 +1,8 @@
 import sys
-
-import pygame
-
 from chess_items import *
 
-pygame.init()
-screen = pygame.display.set_mode((WINDOW_SIZE))
-pygame.display.set_caption("Шахматы")
-screen.fill(BACKGROUND)
 clock = pygame.time.Clock()
-
-chessboard = Chessboard(screen, 8, 60)
+chessboard = Chessboard(8, 60)
 
 while True:
     for event in pygame.event.get():

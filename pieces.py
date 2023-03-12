@@ -9,10 +9,14 @@ class Pieces(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self._color = color
         self.field_name = field_name
+        self.__sound = pygame.mixer.Sound('sound/move.mp3')
 
     def move_to_cell(self, cell):
+        if self.field_name != cell.field_name:
+            self.field_name = cell.field_name
+            self.__sound.set_volume(0.4)
+            self.__sound.play()
         self.rect = cell.rect.copy()
-        self.field_name = cell.field_name
 
 class King(Pieces):
     def __init__(self, cell_size: int, color: str, field: str):

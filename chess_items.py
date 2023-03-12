@@ -6,8 +6,9 @@ pygame.init()
 fnt_num = pygame.font.Font(pygame.font.get_default_font(), 24)
 
 class Chessboard:
-    def __init__(self, parent_surfuse: pygame.Surface, cell_qty=CELL_QTY, cell_size=size_field):
-        self.__screen = parent_surfuse
+    def __init__(self,cell_qty=CELL_QTY, cell_size=size_field):
+        pygame.display.set_caption("Шахматы")
+        self.__screen = pygame.display.set_mode((WINDOW_SIZE))
         self.__table = board_data.board
         self.__qty = cell_qty
         self.__size = cell_size
@@ -19,9 +20,10 @@ class Chessboard:
         self.__picked_piece = None
         self.__dragged_piece = None
         self.__draw_playboard()
-        self.__draw_all_pieces()
-        pygame.display.update()
+        self.__setup_board()
+        self.__grand_update()
     def __draw_playboard(self):
+        self.__screen.fill(BACKGROUND)
         total_width = self.__qty * self.__size
         num_fields = self.__create_num_fields()
         self.__all_cells = self.__create_all_cells()
@@ -43,7 +45,7 @@ class Chessboard:
         cell_offset = (playboard_rect.x + num_fields_depth,
                        playboard_rect.y + num_fields_depth,)
 
-        self.__draw_cells_on_playbord(cell_offset)
+        self.__aplly_offset_for_cells(cell_offset)
 
 
     def __create_num_fields(self):
@@ -75,15 +77,11 @@ class Chessboard:
             cell_color_index = cell_color_index ^ True if is_even_qty else cell_color_index
         return group
 
-    def __draw_cells_on_playbord(self, offset):
+    def __aplly_offset_for_cells(self, offset):
         for cell in self.__all_cells:
             cell.rect.x += offset[0]
             cell.rect.y += offset[1]
-        self.__all_cells.draw(self.__screen)
 
-    def __draw_all_pieces(self):
-        self.__setup_board()
-        self.__all_pieces.draw(self.__screen)
 
     def __setup_board(self):
         for j, row in enumerate(self.__table):
@@ -95,7 +93,6 @@ class Chessboard:
             for cell in self.__all_cells:
                 if piece.field_name == cell.field_name:
                     piece.rect = cell.rect.copy()
-
     def __create_piece(self, piece_symbol: str, table_coord: tuple):
         field_name = self.__to_field_name(table_coord)
         piece_tuple = self.__pieces_types[piece_symbol]
@@ -150,6 +147,7 @@ class Chessboard:
         self.__grand_update()
 
     def __grand_update(self):
+        self.__draw_playboard()
         self.__all_cells.draw(self.__screen)
         self.__all_areas.draw(self.__screen)
         self.__all_pieces.draw(self.__screen)
@@ -178,12 +176,10 @@ class Chessboard:
             self.__picked_piece.move_to_cell(cell)
             self.__picked_piece = None
 
-
     def __unmark_all_cells(self):
         self.__all_areas.empty()
         for cell in self.__all_cells:
             cell.mark = False
-
 
 
 class Cell(pygame.sprite.Sprite):
