@@ -2,7 +2,7 @@ import sys
 from chess_items import *
 
 clock = pygame.time.Clock()
-chessboard = Chessboard(8, 60)
+chessboard = Chessboard(8, 90)
 
 while True:
     for event in pygame.event.get():

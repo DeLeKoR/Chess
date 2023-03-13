@@ -1,4 +1,5 @@
 import pygame
+import board_data
 from options import *
 
 class Pieces(pygame.sprite.Sprite):
@@ -7,16 +8,23 @@ class Pieces(pygame.sprite.Sprite):
         picture = pygame.image.load(PIECES_PATH + color + file_posfix).convert_alpha()
         self.image = pygame.transform.scale(picture, (cell_size, cell_size))
         self.rect = self.image.get_rect()
-        self._color = color
+        self.color = color
         self.field_name = field_name
         self.__sound = pygame.mixer.Sound('sound/move.mp3')
 
     def move_to_cell(self, cell):
         if self.field_name != cell.field_name:
+            print(self.field_name, cell.field_name)
             self.field_name = cell.field_name
             self.__sound.set_volume(0.4)
             self.__sound.play()
+            board_data.history.append([self.field_name, cell.field_name])
         self.rect = cell.rect.copy()
+        print(6)
+
+    def return_pieces(self, cell):
+        self.rect = cell.rect.copy()
+
 
 class King(Pieces):
     def __init__(self, cell_size: int, color: str, field: str):

@@ -19,9 +19,11 @@ class Chessboard:
         self.__pressed_cell = None
         self.__picked_piece = None
         self.__dragged_piece = None
+        self.__old_position = None
         self.__draw_playboard()
         self.__setup_board()
         self.__grand_update()
+        self.queue = 'w'
     def __draw_playboard(self):
         self.__screen.fill(BACKGROUND)
         total_width = self.__qty * self.__size
@@ -44,9 +46,7 @@ class Chessboard:
         self.__screen.blit(playboard_veiw, playboard_rect)
         cell_offset = (playboard_rect.x + num_fields_depth,
                        playboard_rect.y + num_fields_depth,)
-
         self.__aplly_offset_for_cells(cell_offset)
-
 
     def __create_num_fields(self):
         n_lines = pygame.Surface((self.__qty * self.__size, self.__size // 3)).convert_alpha()
@@ -63,7 +63,6 @@ class Chessboard:
                 i * self.__size + (self.__size - number.get_rect().height) // 2
             ))
         return (n_rows, n_lines)
-
 
     def __create_all_cells(self):
         group = pygame.sprite.Group()
@@ -82,7 +81,6 @@ class Chessboard:
             cell.rect.x += offset[0]
             cell.rect.y += offset[1]
 
-
     def __setup_board(self):
         for j, row in enumerate(self.__table):
             for i, field_value in enumerate(row):
@@ -93,6 +91,7 @@ class Chessboard:
             for cell in self.__all_cells:
                 if piece.field_name == cell.field_name:
                     piece.rect = cell.rect.copy()
+
     def __create_piece(self, piece_symbol: str, table_coord: tuple):
         field_name = self.__to_field_name(table_coord)
         piece_tuple = self.__pieces_types[piece_symbol]
@@ -120,30 +119,63 @@ class Chessboard:
                 return piece
         return None
 
+    def __check_pieces_on_cell(self, cell):
+        piece = self.__get_piece_on_cell(cell)
+        if piece is not None:
+            print(True)
+            return True
+        else:
+            print(False)
+            return False
+
     def drag(self, position: tuple):
+        """Отвечает за анимацию перемещения фигуры курсором"""
         if self.__dragged_piece is not None:
             self.__dragged_piece.rect.center = position
             self.__grand_update()
 
     def btn_down(self, button_type: int, position: tuple):
+        """производит действия при нажатии мыши"""
+        self.old_position(position)
         self.__pressed_cell = self.__get_cell(position)
         self.__dragged_piece = self.__get_piece_on_cell(self.__pressed_cell)
-        if self.__dragged_piece is not None:
-            self.__dragged_piece.rect.center = position
-            self.__grand_update()
+        try:
+            if self.__dragged_piece.color == self.queue:
+                self.drag(position)
+            else:
+                self.__dragged_piece = None
+        except:
+            self.__dragged_piece = None
 
     def btn_up(self, button_type: int, position: tuple):
+        """производит действия при отпускании мыши"""
         relseased_cell = self.__get_cell(position)
         if (relseased_cell is not None) and (relseased_cell == self.__pressed_cell):
             if button_type == 3:
                 self.__mark_cell(relseased_cell)
             if button_type == 1:
-                self.__pick_cell(relseased_cell)
+                self.pick_cell(relseased_cell)
             if button_type == 6:
                 self.__unmark_all_cells()
         if self.__dragged_piece is not None:
-            self.__dragged_piece.move_to_cell(relseased_cell)
-            self.__dragged_piece = None
+            try:
+                if self.__dragged_piece.field_name != relseased_cell.field_name:
+                    if self.__check_pieces_on_cell(relseased_cell):
+                        self.__dragged_piece.return_pieces(self.__get_cell(self.__old_position))
+                        self.__dragged_piece = None
+                    else:
+                        self.__dragged_piece.move_to_cell(relseased_cell)
+                        self.Queue()
+                        self.__dragged_piece = None
+                        self.__picked_piece = None
+                        self.__unmark_all_cells()
+                else:
+                    self.__dragged_piece.return_pieces(relseased_cell)
+                    self.__dragged_piece = None
+                    self.pick_cell(relseased_cell)
+            except AttributeError:
+                self.__dragged_piece.return_pieces(self.__get_cell(self.__old_position))
+                self.__dragged_piece = None
         self.__grand_update()
 
     def __grand_update(self):
@@ -164,22 +196,38 @@ class Chessboard:
                     break
         cell.mark ^= True
 
-    def __pick_cell(self, cell):
-        self.__unmark_all_cells()
+    def pick_cell(self, cell):
         if self.__picked_piece is None:
             piece = self.__get_piece_on_cell(cell)
-            if piece is not None:
+            if piece is not None and piece.color == self.queue:
                 pick = Area(cell, False)
                 self.__all_areas.add(pick)
                 self.__picked_piece = piece
         else:
-            self.__picked_piece.move_to_cell(cell)
-            self.__picked_piece = None
+            if self.__check_pieces_on_cell(cell):
+                pass
+            elif self.__picked_piece.field_name != cell.field_name:
+                self.__picked_piece.move_to_cell(cell)
+                self.__picked_piece = None
+                self.Queue()
+                self.__unmark_all_cells()
+            else:
+                self.__picked_piece = None
 
     def __unmark_all_cells(self):
         self.__all_areas.empty()
         for cell in self.__all_cells:
             cell.mark = False
+
+    def __kill_of_pieces(self, position, piece):
+        now_cell = self.__get_cell(position)
+        pass
+
+    def old_position(self, position):
+        self.__old_position = position
+
+    def Queue(self):
+        self.queue = 'b' if self.queue == 'w' else 'w'
 
 
 class Cell(pygame.sprite.Sprite):
