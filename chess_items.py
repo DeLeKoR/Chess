@@ -122,7 +122,7 @@ class Chessboard:
 
     def __check_pieces_on_cell(self, cell):
         piece = self.__get_piece_on_cell(cell)
-        if piece is not None:
+        if piece is not None and piece.color == self.queue:
             print(True)
             return True
         else:
@@ -139,8 +139,8 @@ class Chessboard:
         """производит действия при нажатии мыши"""
         self.old_position(position)
         self.__pressed_cell = self.__get_cell(position)
-        self.__dragged_piece = self.__get_piece_on_cell(self.__pressed_cell)
         try:
+            self.__dragged_piece = self.__get_piece_on_cell(self.__pressed_cell)
             if self.__dragged_piece.color == self.queue:
                 if self.__dragged_piece != self.__old_piece:
                     self.__unpick_cell(self.__pressed_cell)
@@ -161,7 +161,11 @@ class Chessboard:
             if button_type == 6:
                 self.__unmark_all_cells()
         if self.__dragged_piece is not None:
-            self.__move_peace(position)
+            try:
+                self.__move_peace(position)
+            except AttributeError:
+                self.__dragged_piece.return_pieces(self.__get_cell(self.__old_position))
+                self.__dragged_piece = None
         self.__grand_update()
 
     def __grand_update(self):
@@ -173,24 +177,23 @@ class Chessboard:
 
     def __move_peace(self, position):
         relseased_cell = self.__get_cell(position)
-        try:
-            if self.__dragged_piece.field_name != relseased_cell.field_name:
-                if self.__check_pieces_on_cell(relseased_cell):
-                    self.__dragged_piece.return_pieces(self.__get_cell(self.__old_position))
-                    self.__dragged_piece = None
-                else:
-                    self.__dragged_piece.move_to_cell(relseased_cell)
-                    self.Queue()
-                    self.__dragged_piece = None
-                    self.__picked_piece = None
-                    self.__unmark_all_cells()
-            else:
-                self.__dragged_piece.return_pieces(relseased_cell)
+        piece = self.__get_piece_on_cell(relseased_cell)
+        if self.__dragged_piece.field_name != relseased_cell.field_name:
+            if self.__check_pieces_on_cell(relseased_cell):
+                self.__dragged_piece.return_pieces(self.__get_cell(self.__old_position))
                 self.__dragged_piece = None
-                self.pick_cell(relseased_cell)
-        except AttributeError:
-            self.__dragged_piece.return_pieces(self.__get_cell(self.__old_position))
+            else:
+                if piece is not None and piece.color != self.queue:
+                    piece.kill()
+                self.__dragged_piece.move_to_cell(relseased_cell)
+                self.__dragged_piece = None
+                self.__picked_piece = None
+                self.__unmark_all_cells()
+                self.Queue()
+        else:
+            self.__dragged_piece.return_pieces(relseased_cell)
             self.__dragged_piece = None
+            self.pick_cell(relseased_cell)
 
     def __mark_cell(self, cell):
         if not cell.mark:
@@ -204,8 +207,8 @@ class Chessboard:
         cell.mark ^= True
 
     def pick_cell(self, cell):
+        piece = self.__get_piece_on_cell(cell)
         if self.__picked_piece is None:
-            piece = self.__get_piece_on_cell(cell)
             if piece is not None and piece.color == self.queue:
                 pick = Area(cell, False)
                 self.__all_areas.add(pick)
@@ -214,6 +217,8 @@ class Chessboard:
             if self.__check_pieces_on_cell(cell):
                 pass
             elif self.__picked_piece.field_name != cell.field_name:
+                if piece is not None and piece.color != self.queue:
+                    piece.kill()
                 self.__picked_piece.move_to_cell(cell)
                 self.__unpick_cell(cell)
                 self.Queue()
@@ -230,9 +235,6 @@ class Chessboard:
         for cell in self.__all_cells:
             cell.mark = False
 
-    def __kill_of_pieces(self, position, piece):
-        now_cell = self.__get_cell(position)
-        pass
 
     def old_position(self, position):
         self.__old_position = position
