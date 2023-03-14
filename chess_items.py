@@ -20,6 +20,7 @@ class Chessboard:
         self.__picked_piece = None
         self.__dragged_piece = None
         self.__old_position = None
+        self.__old_piece = None
         self.__draw_playboard()
         self.__setup_board()
         self.__grand_update()
@@ -141,6 +142,8 @@ class Chessboard:
         self.__dragged_piece = self.__get_piece_on_cell(self.__pressed_cell)
         try:
             if self.__dragged_piece.color == self.queue:
+                if self.__dragged_piece != self.__old_piece:
+                    self.__unpick_cell(self.__pressed_cell)
                 self.drag(position)
             else:
                 self.__dragged_piece = None
@@ -158,24 +161,7 @@ class Chessboard:
             if button_type == 6:
                 self.__unmark_all_cells()
         if self.__dragged_piece is not None:
-            try:
-                if self.__dragged_piece.field_name != relseased_cell.field_name:
-                    if self.__check_pieces_on_cell(relseased_cell):
-                        self.__dragged_piece.return_pieces(self.__get_cell(self.__old_position))
-                        self.__dragged_piece = None
-                    else:
-                        self.__dragged_piece.move_to_cell(relseased_cell)
-                        self.Queue()
-                        self.__dragged_piece = None
-                        self.__picked_piece = None
-                        self.__unmark_all_cells()
-                else:
-                    self.__dragged_piece.return_pieces(relseased_cell)
-                    self.__dragged_piece = None
-                    self.pick_cell(relseased_cell)
-            except AttributeError:
-                self.__dragged_piece.return_pieces(self.__get_cell(self.__old_position))
-                self.__dragged_piece = None
+            self.__move_peace(position)
         self.__grand_update()
 
     def __grand_update(self):
@@ -184,6 +170,27 @@ class Chessboard:
         self.__all_areas.draw(self.__screen)
         self.__all_pieces.draw(self.__screen)
         pygame.display.update()
+
+    def __move_peace(self, position):
+        relseased_cell = self.__get_cell(position)
+        try:
+            if self.__dragged_piece.field_name != relseased_cell.field_name:
+                if self.__check_pieces_on_cell(relseased_cell):
+                    self.__dragged_piece.return_pieces(self.__get_cell(self.__old_position))
+                    self.__dragged_piece = None
+                else:
+                    self.__dragged_piece.move_to_cell(relseased_cell)
+                    self.Queue()
+                    self.__dragged_piece = None
+                    self.__picked_piece = None
+                    self.__unmark_all_cells()
+            else:
+                self.__dragged_piece.return_pieces(relseased_cell)
+                self.__dragged_piece = None
+                self.pick_cell(relseased_cell)
+        except AttributeError:
+            self.__dragged_piece.return_pieces(self.__get_cell(self.__old_position))
+            self.__dragged_piece = None
 
     def __mark_cell(self, cell):
         if not cell.mark:
@@ -208,11 +215,15 @@ class Chessboard:
                 pass
             elif self.__picked_piece.field_name != cell.field_name:
                 self.__picked_piece.move_to_cell(cell)
-                self.__picked_piece = None
+                self.__unpick_cell(cell)
                 self.Queue()
-                self.__unmark_all_cells()
             else:
-                self.__picked_piece = None
+                self.__unpick_cell(cell)
+
+    def __unpick_cell(self, cell):
+        self.__picked_piece = None
+        self.__unmark_all_cells()
+
 
     def __unmark_all_cells(self):
         self.__all_areas.empty()
