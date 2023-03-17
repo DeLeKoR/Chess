@@ -122,18 +122,24 @@ class Chessboard:
 
     def __check_pieces_on_cell(self, cell):
         piece = self.__get_piece_on_cell(cell)
-        if piece is not None and piece.color == self.queue:
-            print(True)
+        if piece is not None:
             return True
         else:
-            print(False)
             return False
 
     def drag(self, position: tuple):
         """Отвечает за анимацию перемещения фигуры курсором"""
         if self.__dragged_piece is not None:
+            cell = self.__get_cell(position)
+            if cell is not None:
+                piece = self.__get_piece_on_cell(cell)
+                if piece is None or cell == self.__get_cell(self.__old_position):
+                    self.__mark_cell(cell)
+                elif piece.color != self.__get_piece_on_cell(self.__pressed_cell).color:
+                    self.__mark_cell(cell, 2)
             self.__dragged_piece.rect.center = position
             self.__grand_update()
+            self.__unmark_all_cells()
 
     def btn_down(self, button_type: int, position: tuple):
         """производит действия при нажатии мыши"""
@@ -143,7 +149,7 @@ class Chessboard:
             self.__dragged_piece = self.__get_piece_on_cell(self.__pressed_cell)
             if self.__dragged_piece.color == self.queue:
                 if self.__dragged_piece != self.__old_piece:
-                    self.__unpick_cell(self.__pressed_cell)
+                    self.__unpick_cell()
                 self.drag(position)
             else:
                 self.__dragged_piece = None
@@ -154,10 +160,8 @@ class Chessboard:
         """производит действия при отпускании мыши"""
         relseased_cell = self.__get_cell(position)
         if (relseased_cell is not None) and (relseased_cell == self.__pressed_cell):
-            if button_type == 3:
-                self.__mark_cell(relseased_cell)
             if button_type == 1:
-                self.pick_cell(relseased_cell)
+                self.__pick_cell(relseased_cell)
             if button_type == 6:
                 self.__unmark_all_cells()
         if self.__dragged_piece is not None:
@@ -166,6 +170,7 @@ class Chessboard:
             except AttributeError:
                 self.__dragged_piece.return_pieces(self.__get_cell(self.__old_position))
                 self.__dragged_piece = None
+                self.__pick_cell(self.__get_cell(self.__old_position))
         self.__grand_update()
 
     def __grand_update(self):
@@ -179,9 +184,10 @@ class Chessboard:
         relseased_cell = self.__get_cell(position)
         piece = self.__get_piece_on_cell(relseased_cell)
         if self.__dragged_piece.field_name != relseased_cell.field_name:
-            if self.__check_pieces_on_cell(relseased_cell):
+            if self.__check_pieces_on_cell(relseased_cell) and piece.color == self.queue:
                 self.__dragged_piece.return_pieces(self.__get_cell(self.__old_position))
                 self.__dragged_piece = None
+                self.__pick_cell(self.__get_cell(self.__old_position))
             else:
                 if piece is not None and piece.color != self.queue:
                     piece.kill()
@@ -193,47 +199,38 @@ class Chessboard:
         else:
             self.__dragged_piece.return_pieces(relseased_cell)
             self.__dragged_piece = None
-            self.pick_cell(relseased_cell)
+            self.__pick_cell(relseased_cell)
 
-    def __mark_cell(self, cell):
-        if not cell.mark:
-            mark = Area(cell)
-            self.__all_areas.add(mark)
-        else:
-            for area in self.__all_areas:
-                if area.field_name == cell.field_name:
-                    area.kill()
-                    break
-        cell.mark ^= True
+    def __mark_cell(self, cell, col: int = 0):
+        mark = Area(cell, col)
+        self.__all_areas.add(mark)
 
-    def pick_cell(self, cell):
+    def __pick_cell(self, cell):
         piece = self.__get_piece_on_cell(cell)
         if self.__picked_piece is None:
             if piece is not None and piece.color == self.queue:
-                pick = Area(cell, False)
+                pick = Area(cell, 1)
                 self.__all_areas.add(pick)
                 self.__picked_piece = piece
         else:
-            if self.__check_pieces_on_cell(cell):
+            if self.__check_pieces_on_cell(cell) and piece.color == self.queue:
                 pass
             elif self.__picked_piece.field_name != cell.field_name:
                 if piece is not None and piece.color != self.queue:
                     piece.kill()
                 self.__picked_piece.move_to_cell(cell)
-                self.__unpick_cell(cell)
+                self.__unpick_cell()
                 self.Queue()
             else:
-                self.__unpick_cell(cell)
+                self.__unpick_cell()
 
-    def __unpick_cell(self, cell):
+    def __unpick_cell(self):
         self.__picked_piece = None
         self.__unmark_all_cells()
 
 
     def __unmark_all_cells(self):
         self.__all_areas.empty()
-        for cell in self.__all_cells:
-            cell.mark = False
 
 
     def old_position(self, position):
@@ -255,15 +252,18 @@ class Cell(pygame.sprite.Sprite):
         self.mark = False
 
 class Area(pygame.sprite.Sprite):
-    def __init__(self, cell: Cell, type_of_area: bool = True):
+    def __init__(self, cell: Cell, type_of_area: int = 0):
         super().__init__()
         coords = (cell.rect.x, cell.rect.y)
         area_size = (cell.rect.width, cell.rect.height)
-        if type_of_area:
-            picture = pygame.image.load(IMG_PATH + 'circle.png').convert_alpha()
+        if type_of_area == 0:
+            picture = pygame.image.load(IMG_PATH + 'select_field.png').convert_alpha()
             self.image = pygame.transform.scale(picture, area_size)
-        else:
+        elif type_of_area == 1:
             self.image = pygame.Surface(area_size).convert_alpha()
             self.image.fill(ACTIV_CELL_COLOR)
+        if type_of_area == 2:
+            picture = pygame.image.load(IMG_PATH + 'select_field_red.png').convert_alpha()
+            self.image = pygame.transform.scale(picture, area_size)
         self.rect = pygame.Rect(coords, area_size)
         self.field_name = cell.field_name
