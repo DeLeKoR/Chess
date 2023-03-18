@@ -215,13 +215,26 @@ class Chessboard:
                 self.__all_free_cells.add(new_cell)
                 if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color != self.queue:
                     break
+
+    def __pawn_killed(self, cell):
+        for i in range(1, 4, 2):
+            i = i + 1 if self.queue == 'b' else i
+            new_cell = cell
+            if self.__get_diagonal_field(new_cell, i) is not None:
+                new_cell = self.__get_diagonal_field(new_cell, i)
+                if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color != self.queue:
+                    self.__all_free_cells.add(new_cell)
+                else:
+                    pass
+
     def __pawn_move(self, cell):
         i = 1 if self.queue == 'w' else 2
         if self.__get_straight_line_field(cell, i) is not None:
             new_cell = self.__get_straight_line_field(cell, i)
             if not self.__check_pieces_on_cell(new_cell):
                 self.__all_free_cells.add(new_cell)
-            return new_cell
+                return new_cell
+            return cell
 
     def __find_free_cells(self, cell, mode: str):
         if mode == 'rook':
@@ -265,6 +278,7 @@ class Chessboard:
         elif mode == 'pawn':
             new_cell = cell
             self.__pawn_move(new_cell)
+            self.__pawn_killed(cell)
 
         elif mode == 'pawn1':
             new_cell = cell
