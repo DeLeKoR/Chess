@@ -304,7 +304,6 @@ class Chessboard:
             if self.__dragged_piece is not None and self.__dragged_piece.color == self.queue:
                 if self.__dragged_piece.name == 'pawn' and self.__dragged_piece.move:
                     self.__find_free_cells(self.__pressed_cell, f'{self.__dragged_piece.name}1')
-                    self.__dragged_piece.move = False
                 else:
                     self.__find_free_cells(self.__pressed_cell, self.__dragged_piece.name)
                 if self.__dragged_piece != self.__old_piece:
@@ -354,6 +353,7 @@ class Chessboard:
                 if piece is not None and piece.color != self.queue:
                     piece.kill()
                 self.__dragged_piece.move_to_cell(relseased_cell)
+                self.__dragged_piece.move = False if self.__dragged_piece.name == 'pawn' else True
                 self.__dragged_piece = None
                 self.__picked_piece = None
                 self.__unmark_all_cells()
@@ -380,6 +380,7 @@ class Chessboard:
             elif self.__picked_piece.field_name != cell.field_name:
                 if piece is not None and piece.color != self.queue:
                     piece.kill()
+                self.__picked_piece.move = False if self.__picked_piece.name == 'pawn' else True
                 self.__picked_piece.move_to_cell(cell)
                 self.__unpick_cell()
                 self.Queue()
