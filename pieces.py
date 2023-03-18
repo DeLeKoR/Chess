@@ -14,13 +14,12 @@ class Pieces(pygame.sprite.Sprite):
 
     def move_to_cell(self, cell):
         if self.field_name != cell.field_name:
-            print(self.field_name, cell.field_name)
+            print(self.field_name, cell.field_name, '\n')
             self.field_name = cell.field_name
             self.__sound.set_volume(0.4)
             self.__sound.play()
             board_data.history.append([self.field_name, cell.field_name])
         self.rect = cell.rect.copy()
-        print(6)
 
     def return_pieces(self, cell):
         self.rect = cell.rect.copy()

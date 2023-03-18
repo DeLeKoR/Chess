@@ -22,6 +22,7 @@ class Chessboard:
         self.__dragged_piece = None
         self.__old_position = None
         self.__old_piece = None
+        self.__designated_cell = None
         self.__draw_playboard()
         self.__setup_board()
         self.__grand_update()
@@ -270,8 +271,6 @@ class Chessboard:
             for i in range(2):
                 new_cell = self.__pawn_move(new_cell)
 
-
-
     def __check_pieces_on_cell(self, cell):
         piece = self.__get_piece_on_cell(cell)
         if piece is not None:
@@ -279,34 +278,50 @@ class Chessboard:
         else:
             return False
 
+    def __check_cell_in_free_cell(self, cell):
+        for c in self.__all_free_cells:
+            if c.field_name == cell.field_name:
+                return True
+        return False
+
+    def __get_all_free_cells(self, cell):
+        if cell.name == 'pawn' and cell.move:
+            self.__find_free_cells(self.__pressed_cell, f'{cell.name}1')
+            self.__mark_free_fields()
+        else:
+            self.__find_free_cells(self.__pressed_cell, cell.name)
+            self.__mark_free_fields()
     def drag(self, position: tuple):
         """Отвечает за анимацию перемещения фигуры курсором"""
         if self.__dragged_piece is not None:
             cell = self.__get_cell(position)
             if cell is not None:
                 piece = self.__get_piece_on_cell(cell)
-                if piece is None or cell == self.__get_cell(self.__old_position):
-                    self.__mark_cell(cell)
-                elif piece.color != self.__get_piece_on_cell(self.__pressed_cell).color:
-                    self.__mark_cell(cell, 2)
+                if self.__designated_cell != cell:
+                    self.__unpick_cell()
+                    if piece is None or cell == self.__get_cell(self.__old_position):
+                        self.__mark_cell(cell)
+                    elif piece.color != self.__get_piece_on_cell(self.__pressed_cell).color:
+                        self.__mark_cell(cell, 2)
+                    self.__mark_free_fields()
+                self.__pick_cell(self.__get_cell(self.__old_position))
+            else:
+                self.__unpick_cell()
             self.__dragged_piece.rect.center = position
-            self.__mark_free_fields()
             self.__grand_update()
-            self.__unpick_cell()
-            self.__pick_cell(self.__get_cell(self.__old_position))
+            self.__designated_cell = self.__get_cell(position)
 
     def btn_down(self, button_type: int, position: tuple):
         """производит действия при нажатии мыши"""
-        self.old_position(position)
+        self.__old_position = position
         self.__pressed_cell = self.__get_cell(position)
         try:
             self.__dragged_piece = self.__get_piece_on_cell(self.__pressed_cell)
             if self.__dragged_piece is not None and self.__dragged_piece.color == self.queue:
-                if self.__dragged_piece.name == 'pawn' and self.__dragged_piece.move:
-                    self.__find_free_cells(self.__pressed_cell, f'{self.__dragged_piece.name}1')
-                else:
-                    self.__find_free_cells(self.__pressed_cell, self.__dragged_piece.name)
+                self.__get_all_free_cells(self.__dragged_piece)
                 if self.__dragged_piece != self.__old_piece:
+                    self.__all_free_cells.empty()
+                    self.__get_all_free_cells(self.__dragged_piece)
                     self.__unpick_cell()
                     self.__pick_cell(self.__get_cell(self.__old_position))
                 self.drag(position)
@@ -328,11 +343,10 @@ class Chessboard:
                 self.__move_peace(position)
             except AttributeError:
                 self.__dragged_piece.return_pieces(self.__get_cell(self.__old_position))
+                self.__get_all_free_cells(self.__dragged_piece)
                 self.__dragged_piece = None
                 self.__pick_cell(self.__get_cell(self.__old_position))
         self.__grand_update()
-        self.__all_free_cells.empty()
-        self.__unmark_all_cells()
 
     def __grand_update(self):
         self.__draw_playboard()
@@ -344,7 +358,7 @@ class Chessboard:
     def __move_peace(self, position):
         relseased_cell = self.__get_cell(position)
         piece = self.__get_piece_on_cell(relseased_cell)
-        if self.__dragged_piece.field_name != relseased_cell.field_name:
+        if self.__dragged_piece.field_name != relseased_cell.field_name and self.__check_cell_in_free_cell(relseased_cell):
             if self.__check_pieces_on_cell(relseased_cell) and piece.color == self.queue:
                 self.__dragged_piece.return_pieces(self.__get_cell(self.__old_position))
                 self.__dragged_piece = None
@@ -358,10 +372,13 @@ class Chessboard:
                 self.__picked_piece = None
                 self.__unmark_all_cells()
                 self.Queue()
+                self.__all_free_cells.empty()
         else:
-            self.__dragged_piece.return_pieces(relseased_cell)
+            self.__dragged_piece.return_pieces(self.__get_cell(self.__old_position))
+            self.__unpick_cell()
+            self.__get_all_free_cells(self.__get_cell(self.__old_position))
             self.__dragged_piece = None
-            self.__pick_cell(relseased_cell)
+            self.__pick_cell(self.__get_cell(self.__old_position))
 
     def __mark_cell(self, cell, col: int = 0):
         mark = Area(cell, col)
@@ -377,15 +394,16 @@ class Chessboard:
         else:
             if self.__check_pieces_on_cell(cell) and piece.color == self.queue:
                 pass
-            elif self.__picked_piece.field_name != cell.field_name:
+            elif self.__picked_piece.field_name != cell.field_name and self.__check_cell_in_free_cell(cell):
                 if piece is not None and piece.color != self.queue:
                     piece.kill()
                 self.__picked_piece.move = False if self.__picked_piece.name == 'pawn' else True
                 self.__picked_piece.move_to_cell(cell)
                 self.__unpick_cell()
                 self.Queue()
+                self.__all_free_cells.empty()
             else:
-                self.__unpick_cell()
+                pass
 
     def __unpick_cell(self):
         self.__picked_piece = None
@@ -396,8 +414,6 @@ class Chessboard:
         self.__all_areas.empty()
 
 
-    def old_position(self, position):
-        self.__old_position = position
 
     def Queue(self):
         self.queue = 'b' if self.queue == 'w' else 'w'
