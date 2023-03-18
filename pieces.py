@@ -29,30 +29,36 @@ class Pieces(pygame.sprite.Sprite):
 class King(Pieces):
     def __init__(self, cell_size: int, color: str, field: str):
         super().__init__(cell_size, color, field, '_king.png')
+        self.name = 'king'
 
 
 class Queen(Pieces):
     def __init__(self, cell_size: int, color: str, field: str):
         super().__init__(cell_size, color, field, '_queen.png')
+        self.name = 'queen'
 
 
 class Rook(Pieces):
     def __init__(self, cell_size: int, color: str, field: str):
         super().__init__(cell_size, color, field, '_rook.png')
+        self.name = 'rook'
 
 
 class Bishop(Pieces):
     def __init__(self, cell_size: int, color: str, field: str):
         super().__init__(cell_size, color, field, '_bishop.png')
+        self.name = 'bishop'
 
 
 class Knight(Pieces):
     def __init__(self, cell_size: int, color: str, field: str):
         super().__init__(cell_size, color, field, '_knight.png')
+        self.name = 'knight'
 
 
 class Pawn(Pieces):
     def __init__(self, cell_size: int, color: str, field: str):
         super().__init__(cell_size, color, field, '_pawn.png')
+        self.name = 'pawn'
 
 

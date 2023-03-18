@@ -16,6 +16,7 @@ class Chessboard:
         self.__all_cells = pygame.sprite.Group()
         self.__all_pieces = pygame.sprite.Group()
         self.__all_areas = pygame.sprite.Group()
+        self.__all_free_cells = pygame.sprite.Group()
         self.__pressed_cell = None
         self.__picked_piece = None
         self.__dragged_piece = None
@@ -114,11 +115,103 @@ class Chessboard:
                 return cell
         return None
 
+    def __get_free_cell(self, position: tuple):
+        for cell in self.__all_free_cells:
+            if self.__get_cell(position) == cell:
+                return cell
+        return None
+
     def __get_piece_on_cell(self, cell):
         for piece in self.__all_pieces:
             if piece.field_name == cell.field_name:
                 return piece
         return None
+
+    def __get_straight_line_field(self, cell, mode: int):
+        n = i = 1
+        if mode == 1:
+            i = 1
+        elif mode == 2:
+            i = -1
+        elif mode == 3:
+            i, n = 1, 0
+        elif mode == 4:
+            i, n = -1, 0
+        next_cell = list(cell.field_name)
+        k = str(int(next_cell[1]) + i) if n == 1 else LTRS[LTRS.index(next_cell[0])+i]
+        next_cell[n] = k
+        next_cell = "".join(next_cell)
+        for c in self.__all_cells:
+            if c.field_name == next_cell:
+                return c
+
+    def __get_diagonal_field(self, cell, mode):
+        j = i = 1
+        if mode == 1:
+            j = i = 1
+        elif mode == 2:
+            j, i = 1, -1
+        elif mode == 3:
+            j, i = -1, 1
+        elif mode == 4:
+            j = i = -1
+        next_cell = list(cell.field_name)
+        k = [LTRS[LTRS.index(next_cell[0]) + j], str(int(next_cell[1]) + i)]
+        next_cell = k
+        next_cell = "".join(next_cell)
+        for c in self.__all_cells:
+            if c.field_name == next_cell:
+                return c
+
+    def __mark_free_fields(self):
+        for cell in self.__all_free_cells:
+            self.__mark_cell(cell, 3)
+
+    def __straight_move(self, cell):
+        for i in range(1, 5):
+            new_cell = cell
+            while self.__get_straight_line_field(new_cell, i) is not None:
+                new_cell = self.__get_straight_line_field(new_cell, i)
+                if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color == self.queue:
+                    break
+                self.__all_free_cells.add(new_cell)
+                if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color != self.queue:
+                    break
+
+    def __diagonal_move(self, cell):
+        for i in range(1, 5):
+            new_cell = cell
+            while self.__get_diagonal_field(new_cell, i) is not None:
+                new_cell = self.__get_diagonal_field(new_cell, i)
+                if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color == self.queue:
+                    break
+                self.__all_free_cells.add(new_cell)
+                if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color != self.queue:
+                    break
+
+    def __find_free_cells(self, cell, mode: str):
+        if mode == 'rook':
+            self.__straight_move(cell)
+        elif mode == 'bishop':
+            self.__diagonal_move(cell)
+        elif mode == 'queen':
+            self.__straight_move(cell)
+            self.__diagonal_move(cell)
+        elif mode == 'king':
+            for i in range(1, 5):
+                new_cell = cell
+                if self.__get_straight_line_field(new_cell, i) is not None:
+                    new_cell = self.__get_straight_line_field(new_cell, i)
+                    self.__all_free_cells.add(new_cell)
+            for i in range(1, 5):
+                new_cell = cell
+                if self.__get_diagonal_field(new_cell, i) is not None:
+                    new_cell = self.__get_diagonal_field(new_cell, i)
+                    self.__all_free_cells.add(new_cell)
+        elif mode == 'knight':
+            pass
+
+
 
     def __check_pieces_on_cell(self, cell):
         piece = self.__get_piece_on_cell(cell)
@@ -139,17 +232,22 @@ class Chessboard:
                     self.__mark_cell(cell, 2)
             self.__dragged_piece.rect.center = position
             self.__grand_update()
-            self.__unmark_all_cells()
+            self.__unpick_cell()
+            self.__pick_cell(self.__get_cell(self.__old_position))
 
     def btn_down(self, button_type: int, position: tuple):
         """производит действия при нажатии мыши"""
         self.old_position(position)
         self.__pressed_cell = self.__get_cell(position)
         try:
+            if button_type == 3:
+                self.__find_free_cells(self.__pressed_cell, 'queen')
+            self.__mark_free_fields()
             self.__dragged_piece = self.__get_piece_on_cell(self.__pressed_cell)
             if self.__dragged_piece.color == self.queue:
                 if self.__dragged_piece != self.__old_piece:
                     self.__unpick_cell()
+                    self.__pick_cell(self.__get_cell(self.__old_position))
                 self.drag(position)
             else:
                 self.__dragged_piece = None
@@ -172,6 +270,8 @@ class Chessboard:
                 self.__dragged_piece = None
                 self.__pick_cell(self.__get_cell(self.__old_position))
         self.__grand_update()
+        self.__all_free_cells.empty()
+        self.__unmark_all_cells()
 
     def __grand_update(self):
         self.__draw_playboard()
@@ -240,6 +340,8 @@ class Chessboard:
         self.queue = 'b' if self.queue == 'w' else 'w'
 
 
+
+
 class Cell(pygame.sprite.Sprite):
     def __init__(self, color_index: int, size: int, coords: tuple, name: str):
         super().__init__()
@@ -264,6 +366,9 @@ class Area(pygame.sprite.Sprite):
             self.image.fill(ACTIV_CELL_COLOR)
         if type_of_area == 2:
             picture = pygame.image.load(IMG_PATH + 'select_field_red.png').convert_alpha()
+            self.image = pygame.transform.scale(picture, area_size)
+        if type_of_area == 3:
+            picture = pygame.image.load(IMG_PATH + 'possible_move.png').convert_alpha()
             self.image = pygame.transform.scale(picture, area_size)
         self.rect = pygame.Rect(coords, area_size)
         self.field_name = cell.field_name
