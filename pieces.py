@@ -60,5 +60,6 @@ class Pawn(Pieces):
     def __init__(self, cell_size: int, color: str, field: str):
         super().__init__(cell_size, color, field, '_pawn.png')
         self.name = 'pawn'
+        self.move = True
 
 

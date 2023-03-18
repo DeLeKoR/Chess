@@ -215,8 +215,9 @@ class Chessboard:
                 if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color != self.queue:
                     break
     def __pawn_move(self, cell):
-        if self.__get_straight_line_field(cell, 1) is not None:
-            new_cell = self.__get_straight_line_field(cell, 1)
+        i = 1 if self.queue == 'w' else 2
+        if self.__get_straight_line_field(cell, i) is not None:
+            new_cell = self.__get_straight_line_field(cell, i)
             if not self.__check_pieces_on_cell(new_cell):
                 self.__all_free_cells.add(new_cell)
             return new_cell
@@ -237,12 +238,18 @@ class Chessboard:
                 new_cell = cell
                 if self.__get_straight_line_field(new_cell, i) is not None:
                     new_cell = self.__get_straight_line_field(new_cell, i)
-                    self.__all_free_cells.add(new_cell)
+                    if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color == self.queue:
+                        pass
+                    else:
+                        self.__all_free_cells.add(new_cell)
             for i in range(1, 5):
                 new_cell = cell
                 if self.__get_diagonal_field(new_cell, i) is not None:
                     new_cell = self.__get_diagonal_field(new_cell, i)
-                    self.__all_free_cells.add(new_cell)
+                    if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color == self.queue:
+                        pass
+                    else:
+                        self.__all_free_cells.add(new_cell)
 
         elif mode == 'knight':
             for i in range(1, 9):
@@ -254,7 +261,7 @@ class Chessboard:
                     elif self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color != self.queue:
                         self.__all_free_cells.add(new_cell)
 
-        elif mode == 'pawn2':
+        elif mode == 'pawn':
             new_cell = cell
             self.__pawn_move(new_cell)
 
@@ -283,6 +290,7 @@ class Chessboard:
                 elif piece.color != self.__get_piece_on_cell(self.__pressed_cell).color:
                     self.__mark_cell(cell, 2)
             self.__dragged_piece.rect.center = position
+            self.__mark_free_fields()
             self.__grand_update()
             self.__unpick_cell()
             self.__pick_cell(self.__get_cell(self.__old_position))
@@ -292,11 +300,13 @@ class Chessboard:
         self.old_position(position)
         self.__pressed_cell = self.__get_cell(position)
         try:
-            if button_type == 3:
-                self.__find_free_cells(self.__pressed_cell, 'pawn1')
-            self.__mark_free_fields()
             self.__dragged_piece = self.__get_piece_on_cell(self.__pressed_cell)
             if self.__dragged_piece is not None and self.__dragged_piece.color == self.queue:
+                if self.__dragged_piece.name == 'pawn' and self.__dragged_piece.move:
+                    self.__find_free_cells(self.__pressed_cell, f'{self.__dragged_piece.name}1')
+                    self.__dragged_piece.move = False
+                else:
+                    self.__find_free_cells(self.__pressed_cell, self.__dragged_piece.name)
                 if self.__dragged_piece != self.__old_piece:
                     self.__unpick_cell()
                     self.__pick_cell(self.__get_cell(self.__old_position))
