@@ -29,6 +29,7 @@ class King(Pieces):
     def __init__(self, cell_size: int, color: str, field: str):
         super().__init__(cell_size, color, field, '_king.png')
         self.name = 'king'
+        self.move = True
 
 
 class Queen(Pieces):
@@ -41,6 +42,7 @@ class Rook(Pieces):
     def __init__(self, cell_size: int, color: str, field: str):
         super().__init__(cell_size, color, field, '_rook.png')
         self.name = 'rook'
+        self.move = True
 
 
 class Bishop(Pieces):

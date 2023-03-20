@@ -1,7 +1,7 @@
 import pygame.image
 
 from pieces import *
-import board_data
+from board_data import *
 pygame.init()
 fnt_num = pygame.font.Font(pygame.font.get_default_font(), 24)
 
@@ -9,7 +9,7 @@ class Chessboard:
     def __init__(self,cell_qty=CELL_QTY, cell_size=size_field):
         pygame.display.set_caption("Шахматы")
         self.__screen = pygame.display.set_mode((WINDOW_SIZE))
-        self.__table = board_data.board
+        self.__table = board
         self.__qty = cell_qty
         self.__size = cell_size
         self.__pieces_types = PIECES_TYPES
@@ -104,6 +104,8 @@ class Chessboard:
     def __to_field_name(self, table_coord: tuple):
         return LTRS[table_coord[1]] + str(self.__qty - table_coord[0])
 
+
+
     def __get_piece(self, position: tuple):
         for piece in self.__all_pieces:
             if piece.rect.collidepoint(position):
@@ -190,6 +192,15 @@ class Chessboard:
             if c.field_name == next_cell:
                 return c
 
+    def __get_all_free_cells(self, cell):
+        if cell.name == 'pawn' and cell.move:
+            self.__find_free_cells(self.__pressed_cell, f'{cell.name}1')
+            self.__mark_free_fields()
+        else:
+            self.__find_free_cells(self.__pressed_cell, cell.name)
+            self.__mark_free_fields()
+
+
     def __mark_free_fields(self):
         for cell in self.__all_free_cells:
             self.__mark_cell(cell, 3)
@@ -236,6 +247,23 @@ class Chessboard:
                 return new_cell
             return cell
 
+    def __mode_king(self, cell):
+        for i in range(1, 5):
+            new_cell = cell
+            if self.__get_straight_line_field(new_cell, i) is not None:
+                new_cell = self.__get_straight_line_field(new_cell, i)
+                if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color == self.queue:
+                    pass
+                else:
+                    self.__all_free_cells.add(new_cell)
+        for i in range(1, 5):
+            new_cell = cell
+            if self.__get_diagonal_field(new_cell, i) is not None:
+                new_cell = self.__get_diagonal_field(new_cell, i)
+                if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color == self.queue:
+                    pass
+                else:
+                    self.__all_free_cells.add(new_cell)
     def __find_free_cells(self, cell, mode: str):
         if mode == 'rook':
             self.__straight_move(cell)
@@ -248,22 +276,7 @@ class Chessboard:
             self.__diagonal_move(cell)
 
         elif mode == 'king':
-            for i in range(1, 5):
-                new_cell = cell
-                if self.__get_straight_line_field(new_cell, i) is not None:
-                    new_cell = self.__get_straight_line_field(new_cell, i)
-                    if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color == self.queue:
-                        pass
-                    else:
-                        self.__all_free_cells.add(new_cell)
-            for i in range(1, 5):
-                new_cell = cell
-                if self.__get_diagonal_field(new_cell, i) is not None:
-                    new_cell = self.__get_diagonal_field(new_cell, i)
-                    if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color == self.queue:
-                        pass
-                    else:
-                        self.__all_free_cells.add(new_cell)
+            self.__mode_king(cell)
 
         elif mode == 'knight':
             for i in range(1, 9):
@@ -282,6 +295,7 @@ class Chessboard:
 
         elif mode == 'pawn1':
             new_cell = cell
+            self.__pawn_killed(cell)
             for i in range(2):
                 new_cell = self.__pawn_move(new_cell)
 
@@ -298,13 +312,6 @@ class Chessboard:
                 return True
         return False
 
-    def __get_all_free_cells(self, cell):
-        if cell.name == 'pawn' and cell.move:
-            self.__find_free_cells(self.__pressed_cell, f'{cell.name}1')
-            self.__mark_free_fields()
-        else:
-            self.__find_free_cells(self.__pressed_cell, cell.name)
-            self.__mark_free_fields()
     def drag(self, position: tuple):
         """Отвечает за анимацию перемещения фигуры курсором"""
         if self.__dragged_piece is not None:
@@ -324,6 +331,7 @@ class Chessboard:
             self.__dragged_piece.rect.center = position
             self.__grand_update()
             self.__designated_cell = self.__get_cell(position)
+
 
     def btn_down(self, button_type: int, position: tuple):
         """производит действия при нажатии мыши"""
@@ -361,6 +369,7 @@ class Chessboard:
                 self.__dragged_piece = None
                 self.__pick_cell(self.__get_cell(self.__old_position))
         self.__grand_update()
+
 
     def __grand_update(self):
         self.__draw_playboard()
@@ -423,11 +432,8 @@ class Chessboard:
         self.__picked_piece = None
         self.__unmark_all_cells()
 
-
     def __unmark_all_cells(self):
         self.__all_areas.empty()
-
-
 
     def Queue(self):
         self.queue = 'b' if self.queue == 'w' else 'w'
