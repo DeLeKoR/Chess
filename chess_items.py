@@ -359,7 +359,7 @@ class Chessboard:
             if button_type == 1:
                 self.__pick_cell(relseased_cell)
             if button_type == 6:
-                self.__unmark_all_cells()
+                self.__Game_Restart()
         if self.__dragged_piece is not None:
             try:
                 self.__move_peace(position)
@@ -437,9 +437,6 @@ class Chessboard:
 
     def Queue(self):
         self.queue = 'b' if self.queue == 'w' else 'w'
-
-
-
 
 class Cell(pygame.sprite.Sprite):
     def __init__(self, color_index: int, size: int, coords: tuple, name: str):
