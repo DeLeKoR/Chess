@@ -11,7 +11,7 @@ while True:
         if event.type == pygame.MOUSEBUTTONDOWN:
             chessboard.btn_down(event.button, event.pos)
         if event.type == pygame.MOUSEBUTTONUP:
-            if event.button == 6:
+            if event.button == 2:
                 chessboard = Chessboard(8, 90)
             chessboard.btn_up(event.button, event.pos)
         if event.type == pygame.MOUSEMOTION:

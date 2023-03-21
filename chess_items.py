@@ -23,7 +23,6 @@ class Chessboard:
         self.__old_position = None
         self.__old_piece = None
         self.__designated_cell = None
-        self.__castling = False
         self.__draw_playboard()
         self.__setup_board()
         self.__grand_update()
@@ -137,9 +136,9 @@ class Chessboard:
             i = 1
         elif mode == 2: # вниз
             i = -1
-        elif mode == 3: # вправо
+        elif mode == 3: # влево
             i, n = 1, 0
-        elif mode == 4: # влево
+        elif mode == 4: # вправо
             i, n = -1, 0
         next_cell = list(cell.field_name)
         k = str(int(next_cell[1]) + i) if n == 1 else LTRS[LTRS.index(next_cell[0])+i]
@@ -208,6 +207,27 @@ class Chessboard:
                     if self.__get_piece_on_cell(cell).color == color:
                         return cell
 
+    def __get_king(self, color):
+        for cell in self.__all_cells:
+            if self.__check_pieces_on_cell(cell):
+                if self.__get_piece_on_cell(cell).name == 'king':
+                    if self.__get_piece_on_cell(cell).color == color:
+                        return self.__get_piece_on_cell(cell)
+
+    def __get_rook(self, mode):
+        new_cell = self.__get_cell_king(self.queue)
+        if mode == 'left':
+            while self.__get_straight_line_field(new_cell, 3) is not None:
+                new_cell = self.__get_straight_line_field(new_cell, 3)
+                if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).name == 'rook':
+                    return self.__get_piece_on_cell(new_cell)
+        else:
+            while self.__get_straight_line_field(new_cell, 4) is not None:
+                new_cell = self.__get_straight_line_field(new_cell, 4)
+                if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).name == 'rook':
+                    return self.__get_piece_on_cell(new_cell)
+
+
 
     def __mark_free_fields(self):
         for cell in self.__all_free_cells:
@@ -235,20 +255,13 @@ class Chessboard:
                 if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color != self.queue:
                     break
 
-    def __Check_castling(self):
+    def __Check_castling(self, side):
+        i = 3 if side else 4
         king = self.__get_cell_king(self.queue)
         new_cell = king
         if self.__get_piece_on_cell(king).move:
-            while self.__get_straight_line_field(new_cell, 3) is not None:
-                new_cell = self.__get_straight_line_field(new_cell, 3)
-                if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).name == 'rook':
-                    if self.__get_piece_on_cell(new_cell).move:
-                        return True
-                elif self.__check_pieces_on_cell(new_cell):
-                    break
-            new_cell = king
-            while self.__get_straight_line_field(new_cell, 4) is not None:
-                new_cell = self.__get_straight_line_field(new_cell, 4)
+            while self.__get_straight_line_field(new_cell, i) is not None:
+                new_cell = self.__get_straight_line_field(new_cell, i)
                 if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).name == 'rook':
                     if self.__get_piece_on_cell(new_cell).move:
                         return True
@@ -257,6 +270,7 @@ class Chessboard:
             return False
         else:
             return False
+
 
     def __pawn_killed(self, cell):
         for i in range(1, 4, 2):
@@ -278,13 +292,26 @@ class Chessboard:
                 return new_cell
             return cell
 
+    def __castling(self, cell, peace):
+        if peace.name == 'king' and peace.move and cell.field_name in ('C1', 'C8', 'G1', 'G8'):
+            if cell.field_name in ('C1', 'C8'):
+                self.__get_rook('right').move_to_cell(
+                    self.__get_straight_line_field(self.__get_cell_king(self.queue), 3))
+            else:
+                self.__get_rook('left').move_to_cell(
+                    self.__get_straight_line_field(self.__get_cell_king(self.queue), 4))
+
     def __mode_king(self, cell):
         for i in range(1, 5):
             new_cell = cell
             if self.__get_straight_line_field(new_cell, i) is not None:
-                if self.__castling and i in (3, 4):  # условие ракировки
+                if self.__Check_castling(True) and i == 3:  # условие ракировки
                     for j in range(2):
-                        new_cell = self.__get_straight_line_field(new_cell, i)
+                        new_cell = self.__get_straight_line_field(new_cell, 3)
+                        self.__all_free_cells.add(new_cell)
+                elif self.__Check_castling(False) and i == 4:
+                    for j in range(2):
+                        new_cell = self.__get_straight_line_field(new_cell, 4)
                         self.__all_free_cells.add(new_cell)
                 else:
                     new_cell = self.__get_straight_line_field(new_cell, i)
@@ -394,10 +421,8 @@ class Chessboard:
         if (relseased_cell is not None) and (relseased_cell == self.__pressed_cell):
             if button_type == 1:
                 self.__pick_cell(relseased_cell)
-            if button_type == 2:
+            if button_type == 3:
                 self.queue = 'w'
-            if button_type == 7:
-                print(self.__Check_castling())
         if self.__dragged_piece is not None:
             try:
                 self.__move_peace(position)
@@ -428,10 +453,9 @@ class Chessboard:
                 if piece is not None and piece.color != self.queue:
                     piece.kill()
                 self.__dragged_piece.move_to_cell(relseased_cell)
+                self.__castling(relseased_cell, self.__dragged_piece)
                 if self.__dragged_piece.name in ['pawn', 'king', 'rook']:
                     self.__dragged_piece.move = False
-                if self.__Check_castling():
-                    print(123)
                 self.__dragged_piece = None
                 self.__picked_piece = None
                 self.__unmark_all_cells()
@@ -461,8 +485,10 @@ class Chessboard:
             elif self.__picked_piece.field_name != cell.field_name and self.__check_cell_in_free_cell(cell):
                 if piece is not None and piece.color != self.queue:
                     piece.kill()
-                self.__picked_piece.move = False if self.__picked_piece.name == 'pawn' else True
                 self.__picked_piece.move_to_cell(cell)
+                self.__castling(cell, self.__picked_piece)
+                if self.__picked_piece in ['pawn', 'king', 'rook']:
+                    self.__picked_piece.move = False
                 self.__unpick_cell()
                 self.Queue()
                 self.__all_free_cells.empty()
