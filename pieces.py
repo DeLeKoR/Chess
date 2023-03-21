@@ -30,12 +30,14 @@ class King(Pieces):
         super().__init__(cell_size, color, field, '_king.png')
         self.name = 'king'
         self.move = True
+        self.attack = False
 
 
 class Queen(Pieces):
     def __init__(self, cell_size: int, color: str, field: str):
         super().__init__(cell_size, color, field, '_queen.png')
         self.name = 'queen'
+        self.attack = False
 
 
 class Rook(Pieces):
@@ -43,18 +45,21 @@ class Rook(Pieces):
         super().__init__(cell_size, color, field, '_rook.png')
         self.name = 'rook'
         self.move = True
+        self.attack = False
 
 
 class Bishop(Pieces):
     def __init__(self, cell_size: int, color: str, field: str):
         super().__init__(cell_size, color, field, '_bishop.png')
         self.name = 'bishop'
+        self.attack = False
 
 
 class Knight(Pieces):
     def __init__(self, cell_size: int, color: str, field: str):
         super().__init__(cell_size, color, field, '_knight.png')
         self.name = 'knight'
+        self.attack = False
 
 
 class Pawn(Pieces):
@@ -62,5 +67,6 @@ class Pawn(Pieces):
         super().__init__(cell_size, color, field, '_pawn.png')
         self.name = 'pawn'
         self.move = True
+        self.attack = False
 
 
