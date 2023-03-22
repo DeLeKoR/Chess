@@ -95,14 +95,17 @@ class Chessboard:
                 if piece.field_name == cell.field_name:
                     piece.rect = cell.rect.copy()
 
-    def __create_piece(self, piece_symbol: str, table_coord: tuple):
+    def __create_piece(self, piece_symbol: str, table_coord: tuple = None, cord: bool = None):
         field_name = self.__to_field_name(table_coord)
+        if cord is not None:
+            field_name = cord
         piece_tuple = self.__pieces_types[piece_symbol]
         classname = globals()[piece_tuple[0]]
         return classname(self.__size, piece_tuple[1], field_name)
 
     def __to_field_name(self, table_coord: tuple):
-        return LTRS[table_coord[1]] + str(self.__qty - table_coord[0])
+        if table_coord is not None:
+            return LTRS[table_coord[1]] + str(self.__qty - table_coord[0])
 
 
 
@@ -395,6 +398,12 @@ class Chessboard:
             self.__grand_update()
             self.__designated_cell = self.__get_cell(position)
 
+    def __pawn_transformation(self, cell):
+        self.__get_piece_on_cell(cell).kill()
+        peace = self.__create_piece('Q' if self.queue == 'w' else 'q', cord=cell.field_name)
+        peace.rect = cell.rect.copy()
+        self.__all_pieces.add(peace)
+        print(peace.name)
 
     def btn_down(self, button_type: int, position: tuple):
         """производит действия при нажатии мыши"""
@@ -433,7 +442,6 @@ class Chessboard:
                 self.__pick_cell(self.__get_cell(self.__old_position))
         self.__grand_update()
 
-
     def __grand_update(self):
         self.__draw_playboard()
         self.__all_cells.draw(self.__screen)
@@ -456,6 +464,8 @@ class Chessboard:
                 self.__castling(relseased_cell, self.__dragged_piece)
                 if self.__dragged_piece.name in ['pawn', 'king', 'rook']:
                     self.__dragged_piece.move = False
+                if self.__dragged_piece.name == 'pawn' and relseased_cell.field_name[1] in ('1', '8'):
+                    self.__pawn_transformation(relseased_cell)
                 self.__dragged_piece = None
                 self.__picked_piece = None
                 self.__unmark_all_cells()
