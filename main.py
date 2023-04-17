@@ -2,7 +2,7 @@ import sys
 from chess_items import *
 
 clock = pygame.time.Clock()
-chessboard = Chessboard(8, 90)
+chessboard = Chessboard(8, size_field)
 
 while True:
     for event in pygame.event.get():
@@ -12,9 +12,10 @@ while True:
             chessboard.btn_down(event.button, event.pos)
         if event.type == pygame.MOUSEBUTTONUP:
             if event.button == 2:
-                chessboard = Chessboard(8, 90)
+                chessboard = Chessboard(8, size_field)
             chessboard.btn_up(event.button, event.pos)
         if event.type == pygame.MOUSEMOTION:
             chessboard.drag(event.pos)
+
     clock.tick(FPS)
     pygame.display.flip()

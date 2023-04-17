@@ -1,37 +1,38 @@
 import pygame.image
-
 from pieces import *
 from board_data import *
 pygame.init()
 fnt_num = pygame.font.Font(pygame.font.get_default_font(), 24)
 
 class Chessboard:
-    def __init__(self,cell_qty=CELL_QTY, cell_size=size_field):
+    def __init__(self, cell_qty=CELL_QTY, cell_size=size_field):
         pygame.display.set_caption("Шахматы")
         self.__screen = pygame.display.set_mode((WINDOW_SIZE))
-        self.__table = board
+        self.table = board
         self.__qty = cell_qty
         self.__size = cell_size
         self.__pieces_types = PIECES_TYPES
-        self.__all_cells = pygame.sprite.Group()
-        self.__all_pieces = pygame.sprite.Group()
-        self.__all_areas = pygame.sprite.Group()
-        self.__all_free_cells = pygame.sprite.Group()
-        self.__pressed_cell = None
-        self.__picked_piece = None
-        self.__dragged_piece = None
-        self.__old_position = None
-        self.__old_piece = None
-        self.__designated_cell = None
-        self.__draw_playboard()
-        self.__setup_board()
-        self.__grand_update()
+        self.all_cells = pygame.sprite.Group()
+        self.all_pieces = pygame.sprite.Group()
+        self.all_areas = pygame.sprite.Group()
+        self.all_free_cells = pygame.sprite.Group()
+        self.possible_moves = pygame.sprite.Group()
+        self.pressed_cell = None
+        self.picked_piece = None
+        self.picked_cell = None
+        self.dragged_piece = None
+        self.old_position = None
+        self.old_piece = None
+        self.designated_cell = None
+        self.draw_playboard()
+        self.setup_board()
+        self.grand_update()
         self.queue = 'w'
-    def __draw_playboard(self):
+    def draw_playboard(self):
         self.__screen.fill(BACKGROUND)
         total_width = self.__qty * self.__size
-        num_fields = self.__create_num_fields()
-        self.__all_cells = self.__create_all_cells()
+        num_fields = self.create_num_fields()
+        self.all_cells = self.create_all_cells()
         num_fields_depth = num_fields[0].get_width()
         playboard_veiw = pygame.Surface((
             2 * num_fields_depth + total_width,
@@ -49,9 +50,9 @@ class Chessboard:
         self.__screen.blit(playboard_veiw, playboard_rect)
         cell_offset = (playboard_rect.x + num_fields_depth,
                        playboard_rect.y + num_fields_depth,)
-        self.__aplly_offset_for_cells(cell_offset)
+        self.aplly_offset_for_cells(cell_offset)
 
-    def __create_num_fields(self):
+    def create_num_fields(self):
         n_lines = pygame.Surface((self.__qty * self.__size, self.__size // 3)).convert_alpha()
         n_rows = pygame.Surface((self.__size // 3, self.__qty * self.__size)).convert_alpha()
         for i in range(0, self.__qty):
@@ -67,7 +68,7 @@ class Chessboard:
             ))
         return (n_rows, n_lines)
 
-    def __create_all_cells(self):
+    def create_all_cells(self):
         group = pygame.sprite.Group()
         is_even_qty = (self.__qty % 2 == 0)
         cell_color_index = 1 if is_even_qty else 0
@@ -79,61 +80,66 @@ class Chessboard:
             cell_color_index = cell_color_index ^ True if is_even_qty else cell_color_index
         return group
 
-    def __aplly_offset_for_cells(self, offset):
-        for cell in self.__all_cells:
+    def aplly_offset_for_cells(self, offset):
+        for cell in self.all_cells:
             cell.rect.x += offset[0]
             cell.rect.y += offset[1]
 
-    def __setup_board(self):
-        for j, row in enumerate(self.__table):
+    def setup_board(self):
+        for j, row in enumerate(self.table):
             for i, field_value in enumerate(row):
                 if field_value != 0:
-                    piece = self.__create_piece(field_value, (j, i))
-                self.__all_pieces.add(piece)
-        for piece in self.__all_pieces:
-            for cell in self.__all_cells:
+                    piece = self.create_piece(field_value, (j, i))
+                self.all_pieces.add(piece)
+        for piece in self.all_pieces:
+            for cell in self.all_cells:
                 if piece.field_name == cell.field_name:
                     piece.rect = cell.rect.copy()
 
-    def __create_piece(self, piece_symbol: str, table_coord: tuple = None, cord: bool = None):
-        field_name = self.__to_field_name(table_coord)
+    def create_piece(self, piece_symbol: str, table_coord: tuple = None, cord: bool = None):
+        field_name = self.to_field_name(table_coord)
         if cord is not None:
             field_name = cord
         piece_tuple = self.__pieces_types[piece_symbol]
         classname = globals()[piece_tuple[0]]
         return classname(self.__size, piece_tuple[1], field_name)
 
-    def __to_field_name(self, table_coord: tuple):
+    def to_field_name(self, table_coord: tuple):
         if table_coord is not None:
             return LTRS[table_coord[1]] + str(self.__qty - table_coord[0])
 
 
-
-    def __get_piece(self, position: tuple):
-        for piece in self.__all_pieces:
+    def get_piece(self, position: tuple):
+        for piece in self.all_pieces:
             if piece.rect.collidepoint(position):
                 return piece
         return None
 
-    def __get_cell(self, position: tuple):
-        for cell in self.__all_cells:
+    def get_cell(self, position: tuple):
+        for cell in self.all_cells:
             if cell.rect.collidepoint(position):
                 return cell
         return None
 
-    def __get_free_cell(self, position: tuple):
-        for cell in self.__all_free_cells:
-            if self.__get_cell(position) == cell:
+    def get_cell_by_name(self, name):
+        for cell in self.all_cells:
+            if cell.field_name == name:
                 return cell
         return None
 
-    def __get_piece_on_cell(self, cell):
-        for piece in self.__all_pieces:
+    def get_free_cell(self, position: tuple):
+        for cell in self.all_free_cells:
+            if self.get_cell(position) == cell:
+                return cell
+        return None
+
+    def get_piece_on_cell(self, cell):
+        for piece in self.all_pieces:
             if piece.field_name == cell.field_name:
                 return piece
         return None
 
-    def __get_straight_line_field(self, cell, mode: int):
+    def get_straight_line_field(self, cell, mode: int):
         n = i = 1
         if mode == 1: # вверх
             i = 1
@@ -147,11 +153,11 @@ class Chessboard:
         k = str(int(next_cell[1]) + i) if n == 1 else LTRS[LTRS.index(next_cell[0])+i]
         next_cell[n] = k
         next_cell = "".join(next_cell)
-        for c in self.__all_cells:
+        for c in self.all_cells:
             if c.field_name == next_cell:
                 return c
 
-    def __get_diagonal_field(self, cell, mode: int):
+    def get_diagonal_field(self, cell, mode: int):
         j = i = 1
         if mode == 1:
             j = i = 1
@@ -165,11 +171,11 @@ class Chessboard:
         k = [LTRS[LTRS.index(next_cell[0]) + j], str(int(next_cell[1]) + i)]
         next_cell = k
         next_cell = "".join(next_cell)
-        for c in self.__all_cells:
+        for c in self.all_cells:
             if c.field_name == next_cell:
                 return c
 
-    def __get_g_field(self, cell, mode: int):
+    def get_g_field(self, cell, mode: int):
         i, j = 2, 1
         if mode == 1:
             i, j = 2, 1
@@ -191,326 +197,361 @@ class Chessboard:
         k = [LTRS[LTRS.index(next_cell[0]) + j], str(int(next_cell[1]) + i)]
         next_cell = k
         next_cell = "".join(next_cell)
-        for c in self.__all_cells:
+        for c in self.all_cells:
             if c.field_name == next_cell:
                 return c
 
-    def __get_all_free_cells(self, cell):
-        if cell.name == 'pawn' and cell.move:
-            self.__find_free_cells(self.__pressed_cell, f'{cell.name}1')
-            self.__mark_free_fields()
+    def get_all_free_cells(self, peace, cell=None):
+        cell = cell if cell is not None else self.pressed_cell
+        if peace.name == 'pawn' and peace.move:
+            self.find_free_cells(cell, f'{peace.name}1')
+            self.mark_free_fields()
         else:
-            self.__find_free_cells(self.__pressed_cell, cell.name)
-            self.__mark_free_fields()
+            self.find_free_cells(cell, peace.name)
+            self.mark_free_fields()
 
-    def __get_cell_king(self, color):
-        for cell in self.__all_cells:
-            if self.__check_pieces_on_cell(cell):
-                if self.__get_piece_on_cell(cell).name == 'king':
-                    if self.__get_piece_on_cell(cell).color == color:
+    def get_cell_king(self, color):
+        for cell in self.all_cells:
+            if self.check_pieces_on_cell(cell):
+                if self.get_piece_on_cell(cell).name == 'king':
+                    if self.get_piece_on_cell(cell).color == color:
                         return cell
 
-    def __get_king(self, color):
-        for cell in self.__all_cells:
-            if self.__check_pieces_on_cell(cell):
-                if self.__get_piece_on_cell(cell).name == 'king':
-                    if self.__get_piece_on_cell(cell).color == color:
-                        return self.__get_piece_on_cell(cell)
+    def get_king(self, color):
+        for cell in self.all_cells:
+            if self.check_pieces_on_cell(cell):
+                if self.get_piece_on_cell(cell).name == 'king':
+                    if self.get_piece_on_cell(cell).color == color:
+                        return self.get_piece_on_cell(cell)
 
-    def __get_rook(self, mode):
-        new_cell = self.__get_cell_king(self.queue)
+    def get_rook(self, mode):
+        new_cell = self.get_cell_king(self.queue)
         if mode == 'left':
-            while self.__get_straight_line_field(new_cell, 3) is not None:
-                new_cell = self.__get_straight_line_field(new_cell, 3)
-                if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).name == 'rook':
-                    return self.__get_piece_on_cell(new_cell)
+            while self.get_straight_line_field(new_cell, 3) is not None:
+                new_cell = self.get_straight_line_field(new_cell, 3)
+                if self.check_pieces_on_cell(new_cell) and self.get_piece_on_cell(new_cell).name == 'rook':
+                    return self.get_piece_on_cell(new_cell)
         else:
-            while self.__get_straight_line_field(new_cell, 4) is not None:
-                new_cell = self.__get_straight_line_field(new_cell, 4)
-                if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).name == 'rook':
-                    return self.__get_piece_on_cell(new_cell)
+            while self.get_straight_line_field(new_cell, 4) is not None:
+                new_cell = self.get_straight_line_field(new_cell, 4)
+                if self.check_pieces_on_cell(new_cell) and self.get_piece_on_cell(new_cell).name == 'rook':
+                    return self.get_piece_on_cell(new_cell)
 
+    def get_all_moves(self):
+        self.possible_moves.empty()
+        for peace in self.all_pieces:
+            if self.queue == peace.color:
+                cell = self.get_cell_by_name(peace.field_name)
+                if peace.name == 'pawn':
+                    self.find_free_cells(cell, f'{peace.name}1', 1)
+                else:
+                    self.find_free_cells(cell, peace.name, 1)
+        self.grand_update()
 
+    def check_shah(self):
+        self.Queue()
+        self.get_all_moves()
+        self.Queue()
+        cell_king = self.get_cell_king(self.queue)
+        if self.check_cell_in_grope_cell(cell_king, self.possible_moves):
+            return True
+        else:
+            return False
 
-    def __mark_free_fields(self):
-        for cell in self.__all_free_cells:
-            self.__mark_cell(cell, 3)
+    def mark_free_fields(self):
+        for cell in self.all_free_cells:
+            self.mark_cell(cell, 3)
 
-    def __straight_move(self, cell):
+    def straight_move(self, cell, free_cells):
         for i in range(1, 5):
             new_cell = cell
-            while self.__get_straight_line_field(new_cell, i) is not None:
-                new_cell = self.__get_straight_line_field(new_cell, i)
-                if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color == self.queue:
+            while self.get_straight_line_field(new_cell, i) is not None:
+                new_cell = self.get_straight_line_field(new_cell, i)
+                if self.check_pieces_on_cell(new_cell) and self.get_piece_on_cell(new_cell).color == self.queue:
                     break
-                self.__all_free_cells.add(new_cell)
-                if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color != self.queue:
+                free_cells.add(new_cell)
+                if self.check_pieces_on_cell(new_cell) and self.get_piece_on_cell(new_cell).color != self.queue:
                     break
 
-    def __diagonal_move(self, cell):
+    def diagonal_move(self, cell, free_cells):
         for i in range(1, 5):
             new_cell = cell
-            while self.__get_diagonal_field(new_cell, i) is not None:
-                new_cell = self.__get_diagonal_field(new_cell, i)
-                if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color == self.queue:
+            while self.get_diagonal_field(new_cell, i) is not None:
+                new_cell = self.get_diagonal_field(new_cell, i)
+                if self.check_pieces_on_cell(new_cell) and self.get_piece_on_cell(new_cell).color == self.queue:
                     break
-                self.__all_free_cells.add(new_cell)
-                if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color != self.queue:
+                free_cells.add(new_cell)
+                if self.check_pieces_on_cell(new_cell) and self.get_piece_on_cell(new_cell).color != self.queue:
                     break
 
-    def __Check_castling(self, side):
+    def Check_castling(self, side):
         i = 3 if side else 4
-        king = self.__get_cell_king(self.queue)
+        king = self.get_cell_king(self.queue)
         new_cell = king
-        if self.__get_piece_on_cell(king).move:
-            while self.__get_straight_line_field(new_cell, i) is not None:
-                new_cell = self.__get_straight_line_field(new_cell, i)
-                if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).name == 'rook':
-                    if self.__get_piece_on_cell(new_cell).move:
+        if self.get_piece_on_cell(king).move:
+            while self.get_straight_line_field(new_cell, i) is not None:
+                new_cell = self.get_straight_line_field(new_cell, i)
+                if self.check_pieces_on_cell(new_cell) and self.get_piece_on_cell(new_cell).name == 'rook':
+                    if self.get_piece_on_cell(new_cell).move:
                         return True
-                elif self.__check_pieces_on_cell(new_cell):
+                elif self.check_pieces_on_cell(new_cell):
                     break
             return False
         else:
             return False
 
 
-    def __pawn_killed(self, cell):
+    def pawn_killed(self, cell, free_cells):
         for i in range(1, 4, 2):
             i = i + 1 if self.queue == 'b' else i
             new_cell = cell
-            if self.__get_diagonal_field(new_cell, i) is not None:
-                new_cell = self.__get_diagonal_field(new_cell, i)
-                if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color != self.queue:
-                    self.__all_free_cells.add(new_cell)
+            if self.get_diagonal_field(new_cell, i) is not None:
+                new_cell = self.get_diagonal_field(new_cell, i)
+                if self.check_pieces_on_cell(new_cell) and self.get_piece_on_cell(new_cell).color != self.queue:
+                    free_cells.add(new_cell)
                 else:
                     pass
 
-    def __pawn_move(self, cell):
+    def pawn_move(self, cell, free_cells):
         i = 1 if self.queue == 'w' else 2
-        if self.__get_straight_line_field(cell, i) is not None:
-            new_cell = self.__get_straight_line_field(cell, i)
-            if not self.__check_pieces_on_cell(new_cell):
-                self.__all_free_cells.add(new_cell)
+        if self.get_straight_line_field(cell, i) is not None:
+            new_cell = self.get_straight_line_field(cell, i)
+            if not self.check_pieces_on_cell(new_cell):
+                free_cells.add(new_cell)
                 return new_cell
             return cell
 
-    def __castling(self, cell, peace):
+    def castling(self, cell, peace):
         if peace.name == 'king' and peace.move and cell.field_name in ('C1', 'C8', 'G1', 'G8'):
             if cell.field_name in ('C1', 'C8'):
-                self.__get_rook('right').move_to_cell(
-                    self.__get_straight_line_field(self.__get_cell_king(self.queue), 3))
+                self.get_rook('right').move_to_cell(
+                    self.get_straight_line_field(self.get_cell_king(self.queue), 3))
             else:
-                self.__get_rook('left').move_to_cell(
-                    self.__get_straight_line_field(self.__get_cell_king(self.queue), 4))
+                self.get_rook('left').move_to_cell(
+                    self.get_straight_line_field(self.get_cell_king(self.queue), 4))
 
-    def __mode_king(self, cell):
+    def mode_king(self, cell, free_cells):
         for i in range(1, 5):
             new_cell = cell
-            if self.__get_straight_line_field(new_cell, i) is not None:
-                if self.__Check_castling(True) and i == 3:  # условие ракировки
+            if self.get_straight_line_field(new_cell, i) is not None:
+                if self.Check_castling(True) and i == 3:  # условие ракировки
                     for j in range(2):
-                        new_cell = self.__get_straight_line_field(new_cell, 3)
-                        self.__all_free_cells.add(new_cell)
-                elif self.__Check_castling(False) and i == 4:
+                        new_cell = self.get_straight_line_field(new_cell, 3)
+                        free_cells.add(new_cell)
+                elif self.Check_castling(False) and i == 4:
                     for j in range(2):
-                        new_cell = self.__get_straight_line_field(new_cell, 4)
-                        self.__all_free_cells.add(new_cell)
+                        new_cell = self.get_straight_line_field(new_cell, 4)
+                        free_cells.add(new_cell)
                 else:
-                    new_cell = self.__get_straight_line_field(new_cell, i)
-                    if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color == self.queue:
+                    new_cell = self.get_straight_line_field(new_cell, i)
+                    if self.check_pieces_on_cell(new_cell) and self.get_piece_on_cell(new_cell).color == self.queue:
                         pass
                     else:
-                        self.__all_free_cells.add(new_cell)
+                        free_cells.add(new_cell)
         for i in range(1, 5):
             new_cell = cell
-            if self.__get_diagonal_field(new_cell, i) is not None:
-                new_cell = self.__get_diagonal_field(new_cell, i)
-                if self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color == self.queue:
+            if self.get_diagonal_field(new_cell, i) is not None:
+                new_cell = self.get_diagonal_field(new_cell, i)
+                if self.check_pieces_on_cell(new_cell) and self.get_piece_on_cell(new_cell).color == self.queue:
                     pass
                 else:
-                    self.__all_free_cells.add(new_cell)
-    def __find_free_cells(self, cell, mode: str):
-        if mode == 'rook':
-            self.__straight_move(cell)
+                    free_cells.add(new_cell)
 
-        elif mode == 'bishop':
-            self.__diagonal_move(cell)
+    def find_free_cells(self, cell, name: str, mode=None):
+        if mode is None:
+            free_cells = self.all_free_cells
+        else:
+            free_cells = self.possible_moves
+        if name == 'rook':
+            self.straight_move(cell, free_cells)
 
-        elif mode == 'queen':
-            self.__straight_move(cell)
-            self.__diagonal_move(cell)
+        elif name == 'bishop':
+            self.diagonal_move(cell, free_cells)
 
-        elif mode == 'king':
-            self.__mode_king(cell)
+        elif name == 'queen':
+            self.straight_move(cell, free_cells)
+            self.diagonal_move(cell, free_cells)
 
-        elif mode == 'knight':
+        elif name == 'king':
+            self.mode_king(cell, free_cells)
+
+        elif name == 'knight':
             for i in range(1, 9):
                 new_cell = cell
-                if self.__get_g_field(new_cell, i) is not None:
-                    new_cell = self.__get_g_field(new_cell, i)
-                    if not self.__check_pieces_on_cell(new_cell):
-                        self.__all_free_cells.add(new_cell)
-                    elif self.__check_pieces_on_cell(new_cell) and self.__get_piece_on_cell(new_cell).color != self.queue:
-                        self.__all_free_cells.add(new_cell)
+                if self.get_g_field(new_cell, i) is not None:
+                    new_cell = self.get_g_field(new_cell, i)
+                    if not self.check_pieces_on_cell(new_cell):
+                        free_cells.add(new_cell)
+                    elif self.check_pieces_on_cell(new_cell) and self.get_piece_on_cell(new_cell).color != self.queue:
+                        free_cells.add(new_cell)
 
-        elif mode == 'pawn':
+        elif name == 'pawn':
             new_cell = cell
-            self.__pawn_move(new_cell)
-            self.__pawn_killed(cell)
+            self.pawn_move(new_cell, free_cells)
+            self.pawn_killed(cell, free_cells)
 
-        elif mode == 'pawn1':
+        elif name == 'pawn1':
             new_cell = cell
-            self.__pawn_killed(cell)
+            self.pawn_killed(cell, free_cells)
             for i in range(2):
-                new_cell = self.__pawn_move(new_cell)
+                new_cell = self.pawn_move(new_cell, free_cells)
 
-    def __check_pieces_on_cell(self, cell):
-        piece = self.__get_piece_on_cell(cell)
+    def check_pieces_on_cell(self, cell):
+        piece = self.get_piece_on_cell(cell)
         if piece is not None:
             return True
         else:
             return False
 
-    def __check_cell_in_free_cell(self, cell):
-        for c in self.__all_free_cells:
+    def check_cell_in_grope_cell(self, cell, grope):
+        for c in grope:
             if c.field_name == cell.field_name:
                 return True
         return False
 
     def drag(self, position: tuple):
         """Отвечает за анимацию перемещения фигуры курсором"""
-        if self.__dragged_piece is not None:
-            cell = self.__get_cell(position)
+        if self.dragged_piece is not None:
+            cell = self.get_cell(position)
             if cell is not None:
-                piece = self.__get_piece_on_cell(cell)
-                if self.__designated_cell != cell:
-                    self.__unpick_cell()
-                    if piece is None or cell == self.__get_cell(self.__old_position):
-                        self.__mark_cell(cell)
-                    elif piece.color != self.__get_piece_on_cell(self.__pressed_cell).color:
-                        self.__mark_cell(cell, 2)
-                    self.__mark_free_fields()
-                self.__pick_cell(self.__get_cell(self.__old_position))
+                piece = self.get_piece_on_cell(cell)
+                if self.designated_cell != cell:
+                    self.unpick_cell()
+                    if piece is None or cell == self.get_cell(self.old_position):
+                        self.mark_cell(cell)
+                    elif piece.color != self.get_piece_on_cell(self.pressed_cell).color:
+                        self.mark_cell(cell, 2)
+                    self.draw_playboard()
+                    self.mark_free_fields()
+                self.pick_cell(self.get_cell(self.old_position))
+                self.designated_cell = self.get_cell(position)
             else:
-                self.__unpick_cell()
-            self.__dragged_piece.rect.center = position
-            self.__grand_update()
-            self.__designated_cell = self.__get_cell(position)
+                self.unpick_cell()
+                self.draw_playboard()
+            self.dragged_piece.rect.center = position
+            self.grand_update()
 
-    def __pawn_transformation(self, cell):
-        self.__get_piece_on_cell(cell).kill()
-        peace = self.__create_piece('Q' if self.queue == 'w' else 'q', cord=cell.field_name)
+    def pawn_transformation(self, cell):
+        self.get_piece_on_cell(cell).kill()
+        peace = self.create_piece('Q' if self.queue == 'w' else 'q', cord=cell.field_name)
         peace.rect = cell.rect.copy()
-        self.__all_pieces.add(peace)
+        self.all_pieces.add(peace)
         print(peace.name)
 
     def btn_down(self, button_type: int, position: tuple):
         """производит действия при нажатии мыши"""
-        self.__old_position = position
-        self.__pressed_cell = self.__get_cell(position)
+        self.old_position = position
+        self.pressed_cell = self.get_cell(position)
         try:
-            self.__dragged_piece = self.__get_piece_on_cell(self.__pressed_cell)
-            if self.__dragged_piece is not None and self.__dragged_piece.color == self.queue:
-                self.__get_all_free_cells(self.__dragged_piece)
-                if self.__dragged_piece != self.__old_piece:
-                    self.__all_free_cells.empty()
-                    self.__get_all_free_cells(self.__dragged_piece)
-                    self.__unpick_cell()
-                    self.__pick_cell(self.__get_cell(self.__old_position))
+            self.dragged_piece = self.get_piece_on_cell(self.pressed_cell)
+            if self.dragged_piece is not None and self.dragged_piece.color == self.queue:
+                self.get_all_free_cells(self.dragged_piece)
+                if self.dragged_piece != self.old_piece:
+                    self.all_free_cells.empty()
+                    self.get_all_free_cells(self.dragged_piece)
+                    self.unpick_cell()
+                    self.pick_cell(self.get_cell(self.old_position))
                 self.drag(position)
             else:
-                self.__dragged_piece = None
+                self.dragged_piece = None
         except:
-            self.__dragged_piece = None
+            self.dragged_piece = None
 
     def btn_up(self, button_type: int, position: tuple):
-        """производит действия при отпускании мыши"""
-        relseased_cell = self.__get_cell(position)
-        if (relseased_cell is not None) and (relseased_cell == self.__pressed_cell):
-            if button_type == 1:
-                self.__pick_cell(relseased_cell)
+        """Производит действия при отпускании мыши"""
+        relseased_cell = self.get_cell(position)
+        if (relseased_cell is not None) and (relseased_cell == self.pressed_cell):
             if button_type == 3:
-                self.queue = 'w'
-        if self.__dragged_piece is not None:
+                self.queue = 'w' if self.queue == 'b' else 'b'
+                self.unpick_cell()
+            if button_type == 1:
+                self.pick_cell(relseased_cell)
+        if self.dragged_piece is not None:
             try:
-                self.__move_peace(position)
+                self.move_peace(position)
             except AttributeError:
-                self.__dragged_piece.return_pieces(self.__get_cell(self.__old_position))
-                self.__get_all_free_cells(self.__dragged_piece)
-                self.__dragged_piece = None
-                self.__pick_cell(self.__get_cell(self.__old_position))
-        self.__grand_update()
+                self.dragged_piece.return_pieces(self.get_cell(self.old_position))
+                self.get_all_free_cells(self.dragged_piece)
+                self.dragged_piece = None
+                self.pick_cell(self.get_cell(self.old_position))
+        self.draw_playboard()
+        self.grand_update()
 
-    def __grand_update(self):
-        self.__draw_playboard()
-        self.__all_cells.draw(self.__screen)
-        self.__all_areas.draw(self.__screen)
-        self.__all_pieces.draw(self.__screen)
+   # def update_piece(self):
+   #     self.dragged_piece.draw(self.__screen)
+   #     pygame.display.update()
+    def grand_update(self):
+        self.all_cells.draw(self.__screen)
+        self.all_areas.draw(self.__screen)
+        self.all_pieces.draw(self.__screen)
         pygame.display.update()
 
-    def __move_peace(self, position):
-        relseased_cell = self.__get_cell(position)
-        piece = self.__get_piece_on_cell(relseased_cell)
-        if self.__dragged_piece.field_name != relseased_cell.field_name and self.__check_cell_in_free_cell(relseased_cell):
-            if self.__check_pieces_on_cell(relseased_cell) and piece.color == self.queue:
-                self.__dragged_piece.return_pieces(self.__get_cell(self.__old_position))
-                self.__dragged_piece = None
-                self.__pick_cell(self.__get_cell(self.__old_position))
-            else:
-                if piece is not None and piece.color != self.queue:
-                    piece.kill()
-                self.__dragged_piece.move_to_cell(relseased_cell)
-                self.__castling(relseased_cell, self.__dragged_piece)
-                if self.__dragged_piece.name in ['pawn', 'king', 'rook']:
-                    self.__dragged_piece.move = False
-                if self.__dragged_piece.name == 'pawn' and relseased_cell.field_name[1] in ('1', '8'):
-                    self.__pawn_transformation(relseased_cell)
-                self.__dragged_piece = None
-                self.__picked_piece = None
-                self.__unmark_all_cells()
-                self.Queue()
-                self.__all_free_cells.empty()
+    def put_into_place(self):
+        self.unpick_cell()
+        self.dragged_piece.return_pieces(self.get_cell(self.old_position))
+        self.get_all_free_cells(self.get_cell(self.old_position))
+        self.pick_cell(self.get_cell(self.old_position))
+
+    def piece_move(self, piece, put_piece, cell):
+        if piece is not None and piece.color != self.queue:
+            piece.kill()
+        put_piece.move_to_cell(cell)
+        self.castling(cell, put_piece)
+        if put_piece.name in ['pawn', 'king', 'rook']:
+            put_piece.move = False
+        if put_piece.name == 'pawn' and cell.field_name[1] in ('1', '8'):
+            self.pawn_transformation(cell)
+        self.unpick_cell()
+        self.Queue()
+        self.all_free_cells.empty()
+
+    def move_peace(self, position):
+        relseased_cell = self.get_cell(position)
+        piece = self.get_piece_on_cell(relseased_cell)
+        if self.dragged_piece.field_name != relseased_cell.field_name and self.check_cell_in_grope_cell(
+                relseased_cell, self.all_free_cells):
+            self.piece_move(piece, self.dragged_piece, relseased_cell)
+            self.dragged_piece = None
         else:
-            self.__dragged_piece.return_pieces(self.__get_cell(self.__old_position))
-            self.__unpick_cell()
-            self.__get_all_free_cells(self.__get_cell(self.__old_position))
-            self.__dragged_piece = None
-            self.__pick_cell(self.__get_cell(self.__old_position))
+            self.put_into_place()
+        if not self.check_shah():
+            print('шаха нет')
+        else:
+            print("шах")
 
-    def __mark_cell(self, cell, col: int = 0):
+    def mark_cell(self, cell, col: int = 0):
         mark = Area(cell, col)
-        self.__all_areas.add(mark)
+        self.all_areas.add(mark)
 
-    def __pick_cell(self, cell):
-        piece = self.__get_piece_on_cell(cell)
-        if self.__picked_piece is None:
+    def pick_cell(self, cell):
+        piece = self.get_piece_on_cell(cell)
+        if self.picked_piece is None:
             if piece is not None and piece.color == self.queue:
                 pick = Area(cell, 1)
-                self.__all_areas.add(pick)
-                self.__picked_piece = piece
+                self.all_areas.add(pick)
+                self.picked_piece = piece
+                self.picked_cell = cell
         else:
-            if self.__check_pieces_on_cell(cell) and piece.color == self.queue:
+            if self.check_pieces_on_cell(cell) and piece.color == self.queue:
                 pass
-            elif self.__picked_piece.field_name != cell.field_name and self.__check_cell_in_free_cell(cell):
-                if piece is not None and piece.color != self.queue:
-                    piece.kill()
-                self.__picked_piece.move_to_cell(cell)
-                self.__castling(cell, self.__picked_piece)
-                if self.__picked_piece in ['pawn', 'king', 'rook']:
-                    self.__picked_piece.move = False
-                self.__unpick_cell()
-                self.Queue()
-                self.__all_free_cells.empty()
+            elif self.picked_piece.field_name != cell.field_name and self.check_cell_in_grope_cell(cell, self.all_free_cells):
+                self.moving(self.picked_piece, cell)
+                self.piece_move(piece, self.picked_piece, cell)
             else:
                 pass
 
-    def __unpick_cell(self):
-        self.__picked_piece = None
-        self.__unmark_all_cells()
+    def moving(self, piece, cell):
+        while piece.rect.center != cell.rect.center:
+            piece.moving_piece(self.picked_cell.rect.center, cell.rect.center)
+            self.grand_update()
 
-    def __unmark_all_cells(self):
-        self.__all_areas.empty()
+    def unpick_cell(self):
+        self.picked_piece = None
+        self.picked_cell = None
+        self.unmark_all_cells()
+
+    def unmark_all_cells(self):
+        self.all_areas.empty()
 
     def Queue(self):
         self.queue = 'b' if self.queue == 'w' else 'w'
@@ -519,6 +560,7 @@ class Cell(pygame.sprite.Sprite):
     def __init__(self, color_index: int, size: int, coords: tuple, name: str):
         super().__init__()
         x, y = coords
+        self.coords = coords
         self.color = color_index
         self.field_name = name
         self.image = pygame.image.load(IMG_PATH + COLORS[color_index])
