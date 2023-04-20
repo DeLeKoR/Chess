@@ -31,13 +31,12 @@ class Pieces(pygame.sprite.Sprite):
     def moving_piece(self, old_cell, new_cell):
         start_pos = old_cell
         end_pos = new_cell
-        current_pos = (round(int(start_pos[0] + (end_pos[0] - start_pos[0]) * self.velocity), -1),
-                       round(int(start_pos[1] + (end_pos[1] - start_pos[1]) * self.velocity), -1))
-        print(current_pos)
+        current_pos = (int(start_pos[0] + (end_pos[0] - start_pos[0]) * self.velocity),
+                       int(start_pos[1] + (end_pos[1] - start_pos[1]) * self.velocity))
         self.rect.center = current_pos
-        self.velocity += 0.1 if self.velocity <= 0.9 else 0.0185
+        self.velocity += 0.075 if self.velocity < 0.9 else 0.015
         if self.rect.center == end_pos:
-            self.velocity = 0.2
+            self.velocity = 0.01
 
 
 
